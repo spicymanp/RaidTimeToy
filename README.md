@@ -87,6 +87,20 @@ Example:
     "bigMaps": { "multiplier": 2.5, "maps": ["shoreline", "woods", "lighthouse", "tarkovstreets"] },
     "expensiveMaps": { "multiplier": 3.0, "maps": ["laboratory"] }
   }
+},
+  "perMapSettings": {
+    "factory4_day": 1.5,
+    "factory4_night": 2.5,
+    "laboratory": 3.0,
+    "bigmap": 1.5,
+    "woods": 2.0,
+    "shoreline": 2.0,
+    "interchange": 2.0,
+    "reserve": 2.0,
+    "lighthouse": 2.0,
+    "tarkovstreets": 2.0,
+    "sandbox": 2.0
+  }
 }
 ```
 
