@@ -101,12 +101,9 @@ Example:
     "tarkovstreets": 2.0,
     "sandbox": 2.0
   }
-}
+
 ```
 
 ## Credits
 
 - Mod by SpicyManP
-- With guidance and code review by T3 Chat
-
----
