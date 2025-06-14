@@ -1,4 +1,11 @@
 /node_modules
+
+mod.js
+mod.d.ts
+src/mod.js
+src/mod.js.map
+node_modules/
+
 # Logs
 logs
 *.log
