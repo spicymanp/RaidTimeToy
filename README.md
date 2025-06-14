@@ -73,34 +73,60 @@ If you want to use per-map or category settings, make sure both randomMode.enabl
 Example:
 ```json
 {
-  "enabled": true,
-  "globalMultiplier": false,
-  "raidTimeMultiplier": 2.0,
-  "randomMode": {
-    "enabled": false,
-    "minMultiplier": 1.0,
-    "maxMultiplier": 3.0
-  },
-  "categories": {
-    "smallMaps": { "multiplier": 0.5, "maps": ["factory4_day", "factory4_night"] },
-    "mediumMaps": { "multiplier": 1.5, "maps": ["bigmap", "reservbase", "interchange"] },
-    "bigMaps": { "multiplier": 2.5, "maps": ["shoreline", "woods", "lighthouse", "tarkovstreets"] },
-    "expensiveMaps": { "multiplier": 3.0, "maps": ["laboratory"] }
-  }
-},
-  "perMapSettings": {
-    "factory4_day": 1.5,
-    "factory4_night": 2.5,
-    "laboratory": 3.0,
-    "bigmap": 1.5,
-    "woods": 2.0,
-    "shoreline": 2.0,
-    "interchange": 2.0,
-    "reserve": 2.0,
-    "lighthouse": 2.0,
-    "tarkovstreets": 2.0,
-    "sandbox": 2.0
-  }
+    "enabled": true,
+    "globalMultiplier": false,
+    "raidTimeMultiplier": 2.0,
+    "randomMode": {
+        "enabled": false,
+        "minMultiplier": 1.0,
+        "maxMultiplier": 3.0
+    },
+    "categories": {
+        "smallMaps": {
+            "multiplier": 0.5,
+            "maps": [
+                "factory4_day",
+                "factory4_night"
+            ]
+        },
+        "mediumMaps": {
+            "multiplier": 1.5,
+            "maps": [
+                "bigmap",
+                "reservbase",
+                "interchange"
+            ]
+        },
+        "bigMaps": {
+            "multiplier": 2.5,
+            "maps": [
+                "shoreline",
+                "woods",
+                "lighthouse",
+                "tarkovstreets"
+            ]
+        },
+        "expensiveMaps": {
+            "multiplier": 3.0,
+            "maps": [
+                "laboratory"
+            ]
+        }
+    },
+    "perMapSettings": {
+        "factory4_day": 1.5,
+        "factory4_night": 2.5,
+        "laboratory": 3.0,
+        "bigmap": 1.5,
+        "woods": 2.0,
+        "shoreline": 2.0,
+        "interchange": 2.0,
+        "reserve": 2.0,
+        "lighthouse": 2.0,
+        "tarkovstreets": 2.0,
+        "sandbox": 2.0
+    }
+}
 
 ```
 

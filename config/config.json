@@ -8,21 +8,35 @@
     "maxMultiplier": 3.0
   },
   "categories": {
-    "smallMaps": { 
-      "multiplier": 1.5, 
-      "maps": ["factory4_day", "factory4_night"] 
+    "smallMaps": {
+      "multiplier": 1.5,
+      "maps": [
+        "factory4_day",
+        "factory4_night"
+      ]
     },
-    "mediumMaps": { 
-      "multiplier": 2, 
-      "maps": ["bigmap", "reservbase", "interchange"] 
+    "mediumMaps": {
+      "multiplier": 2,
+      "maps": [
+        "bigmap",
+        "reservbase",
+        "interchange"
+      ]
     },
-    "bigMaps": { 
-      "multiplier": 2.5, 
-      "maps": ["shoreline", "woods", "lighthouse", "tarkovstreets"] 
+    "bigMaps": {
+      "multiplier": 2.5,
+      "maps": [
+        "shoreline",
+        "woods",
+        "lighthouse",
+        "tarkovstreets"
+      ]
     },
     "expensiveMaps": {
       "multiplier": 3.0,
-      "maps": ["laboratory"]
+      "maps": [
+        "laboratory"
+      ]
     }
   },
   "perMapSettings": {
