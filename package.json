@@ -1,0 +1,20 @@
+{
+  "name": "raidtimetoy",
+  "version": "1.0.0",
+  "description": "Multiplies raid escape times across all maps",
+  "main": "src/mod.js",
+  "author": "Paulo",
+  "license": "MIT",
+  "sptVersion": "3.11.x",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "biome": "^0.3.3",
+    "typescript": "^5.8.3"
+  }
+}
