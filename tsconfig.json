@@ -1,18 +1,22 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
+    "allowJs": true,
+    "module": "NodeNext",
+    "target": "ES2022",
+    "moduleResolution": "NodeNext",
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "outDir": "./tmp",
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "declaration": true,
-    "outDir": "./",
-    "rootDir": "./src",
     "resolveJsonModule": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".", // This is important for path aliases
+    "paths": {
+            "@spt/*": ["./types/*"],
+    }
   },
-  "include": ["src/**/*", "mod.js"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist", "tmp"],
 }

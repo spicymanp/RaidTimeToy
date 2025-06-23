@@ -2,6 +2,13 @@
   "enabled": true,
   "globalMultiplier": true,
   "raidTimeMultiplier": 2.0,
+  "adjustTrainTimes": {
+    "enabled": true,
+    "arrivalStartPercent": 0.7,
+    "departureEndPercent": 0.95,
+    "trainWaitTimeSeconds": 400,
+    "exfiltrationDurationSeconds": 5
+  },
   "randomMode": {
     "enabled": false,
     "minMultiplier": 0.5,

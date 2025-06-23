@@ -1,13 +1,7 @@
 /node_modules
+/dist
 
-mod.js
-mod.d.ts
-src/mod.js
-images/
-to_zip/
-src/mod.js.map
-node_modules/
-raidTimeToy v1.0.7z
+RaidTimeToyv2_structure.txt
 
 # Logs
 logs
