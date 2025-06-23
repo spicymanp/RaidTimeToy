@@ -1,21 +1,18 @@
 import { DependencyContainer } from "tsyringe";
 import { DatabaseService } from "@spt/services/DatabaseService";
 import { ILogger } from "@spt/models/spt/utils/ILogger";
-import { RaidTimeToyConfig } from "../controllers/ConfigController"; // Correct import for config type
+import { RaidTimeToyConfig } from "../controllers/ConfigController";
 
 export class MapToy {
     private container: DependencyContainer;
     private logger: ILogger;
     private db: DatabaseService;
 
-    // Color codes for console output (keep for logBox)
     private colors = {
         green: "\x1b[32m",
         cyan: "\x1b[36m",
         yellow: "\x1b[33m",
         reset: "\x1b[0m",
-        // Magenta is no longer needed for polished logs, but kept here if you want it later.
-        // magenta: "\x1b[35m",
     };
 
     constructor(container: DependencyContainer) {
@@ -26,46 +23,38 @@ export class MapToy {
 
     /**
      * The main method to adjust all map locations based on the config.
-     * This contains all your v1 raid time and train adjustment logic, now polished.
      * @param safeConfig The validated configuration object.
+     * @param modVersion The current version of the mod. // <-- NEW PARAMETER
      */
-    public adjustMaps(safeConfig: RaidTimeToyConfig): void {
+    public adjustMaps(safeConfig: RaidTimeToyConfig, modVersion: string): void { // <-- ADD `modVersion` PARAMETER
         const locations = this.db.getTables().locations;
-        let modifiedMapCount = 0; // Renamed for clarity: this counts maps where raid time or train was adjusted
+        let modifiedMapCount = 0;
         const modificationLogs: string[] = [];
 
-        // Maps to skip (duplicates, variants, etc.)
         const excludedMaps = ["sandbox_high"];
 
-        // Friendly warning for conflicting settings - logged once in mod.ts preSptLoad.
-        // No need to repeat here.
-
         for (const [mapId, mapData] of Object.entries(locations)) {
-            const locationData = mapData as any; // Cast to 'any' for easier property access
+            const locationData = mapData as any;
             if (excludedMaps.includes(mapId)) {
-                continue; // Skip excluded maps
+                continue;
             }
-
-            // Only modify maps with an EscapeTimeLimit and not 'infinite' raids (99999)
             if (
                 locationData.base?.EscapeTimeLimit &&
                 locationData.base.EscapeTimeLimit < 99999
             ) {
-                const originalRaidTime = locationData.base.EscapeTimeLimit; // Time in minutes (as per SPT database)
+                const originalRaidTime = locationData.base.EscapeTimeLimit;
 
-                // --- Determine multiplier based on configured mode (Random, Global, Custom, Category, Default) ---
-                let multiplier: number = safeConfig.raidTimeMultiplier; // Default fallback
+                let multiplier: number = safeConfig.raidTimeMultiplier;
                 let isRandom = false;
                 let isGlobal = false;
                 let isCategory = false;
-                let categoryName = ""; // To store the category name for logging
+                let categoryName = "";
 
-                // Check modes in priority order based on config priority logic
                 if (safeConfig.randomMode?.enabled) {
                     const min = safeConfig.randomMode.minMultiplier;
                     const max = safeConfig.randomMode.maxMultiplier;
                     multiplier = Math.random() * (max - min) + min;
-                    multiplier = Math.round(multiplier * 100) / 100; // Round to 2 decimal places
+                    multiplier = Math.round(multiplier * 100) / 100;
                     isRandom = true;
                 } else if (safeConfig.globalMultiplier) {
                     multiplier = safeConfig.raidTimeMultiplier;
@@ -73,7 +62,7 @@ export class MapToy {
                 } else {
                     const perMapMultiplier = safeConfig.perMapSettings?.[mapId];
                     if (perMapMultiplier !== undefined) {
-                        multiplier = perMapMultiplier; // Individual setting wins
+                        multiplier = perMapMultiplier;
                     } else {
                         let foundInCategory = false;
                         const categories = safeConfig.categories || {};
@@ -88,18 +77,16 @@ export class MapToy {
                             }
                         }
                         if (!foundInCategory) {
-                            multiplier = safeConfig.raidTimeMultiplier; // Default fallback
+                            multiplier = safeConfig.raidTimeMultiplier;
                         }
                     }
                 }
 
-                // Apply the new raid time to the database
                 const newCalculatedTime = Math.round(originalRaidTime * multiplier);
                 locationData.base.EscapeTimeLimit = newCalculatedTime;
 
-                const friendlyMapName = this.getMapName(mapId); // Get readable map name
+                const friendlyMapName = this.getMapName(mapId);
 
-                // --- Build core log message for raid time adjustment ---
                 let raidTimeLogMessage = "";
                 if (isRandom) {
                     raidTimeLogMessage = `${friendlyMapName}: 🎲 randomized!`;
@@ -112,54 +99,50 @@ export class MapToy {
                     const multiplierText = isCustom ? `${multiplier}x*` : `${multiplier}x`;
                     raidTimeLogMessage = `${friendlyMapName}: ${originalRaidTime}m → ${newCalculatedTime}m (${multiplierText})`;
                 }
-                modificationLogs.push(raidTimeLogMessage); // Add to our logs
+                modificationLogs.push(raidTimeLogMessage);
 
-                // --- Train Adjustment Logic ---
                 if (safeConfig.adjustTrainTimes?.enabled && locationData.base?.exits) {
                     const trainExit = locationData.base.exits.find(
                         (exit: any) => exit.Name === "EXFIL_Train"
-                    ); // Corrected to "EXFIL_Train"
+                    );
 
                     if (trainExit) {
-                        const trainConfig = safeConfig.adjustTrainTimes; // Shorthand for train config
+                        const trainConfig = safeConfig.adjustTrainTimes;
                         const newMinTime = Math.round(newCalculatedTime * trainConfig.arrivalStartPercent);
                         const newMaxTime = Math.round(newCalculatedTime * trainConfig.departureEndPercent);
 
                         trainExit.MinTime = newMinTime;
                         trainExit.MaxTime = newMaxTime;
-                        trainExit.Count = trainConfig.trainWaitTimeSeconds; // Set train wait time (seconds)
-                        trainExit.ExfiltrationTime = trainConfig.exfiltrationDurationSeconds; // Set player exfil duration (seconds)
+                        trainExit.Count = trainConfig.trainWaitTimeSeconds;
+                        trainExit.ExfiltrationTime = trainConfig.exfiltrationDurationSeconds;
 
-                        // Add a clean, integrated log message for train adjustments
                         modificationLogs.push(
-                            `   -> 🚆 Train: Active ${Math.round(newMinTime)}m - ${Math.round(newMaxTime)}m (Waits ${Math.round(trainConfig.trainWaitTimeSeconds / 60)}m)`
+                            `   -> 🚆 Train: Active ${Math.round(newMinTime / 60)}m - ${Math.round(newMaxTime / 60)}m (Waits ${trainConfig.trainWaitTimeSeconds}s)`
                         );
                     }
                 }
-                modifiedMapCount++; // Increment count of maps actually modified
+                modifiedMapCount++;
             }
         }
 
-        // --- Final Logging Box Output ---
         let titleText: string;
         let summaryText: string;
 
         if (safeConfig.randomMode?.enabled) {
-            titleText = `🎮 RaidTimeToy v2.0 - Random Mode 🎲`;
+            titleText = `🎮 RaidTimeToy v${modVersion} - Random Mode 🎲`; // <-- USE modVersion HERE
             summaryText = `✅ Randomized ${modifiedMapCount} maps successfully!`;
         } else if (safeConfig.globalMultiplier) {
-            titleText = `🎮 RaidTimeToy v2.0 - Global Mode (${safeConfig.raidTimeMultiplier}x)`;
+            titleText = `🎮 RaidTimeToy v${modVersion} - Global Mode (${safeConfig.raidTimeMultiplier}x)`; // <-- USE modVersion HERE
             summaryText = `✅ Applied ${safeConfig.raidTimeMultiplier}x to ${modifiedMapCount} maps!`;
         } else {
-            titleText = `🎮 RaidTimeToy v2.0 - Custom Mode`;
-            summaryText = `✅ Modified ${modifiedMapCount} maps (*=custom, 📂=category)`; // Updated summary for clarity
+            titleText = `🎮 RaidTimeToy v${modVersion} - Custom Mode`; // <-- USE modVersion HERE
+            summaryText = `✅ Modified ${modifiedMapCount} maps (*=custom, 📂=category)`;
         }
-        this.logBox(titleText, modificationLogs, summaryText); // Display the collected logs
+        this.logBox(titleText, modificationLogs, summaryText);
     }
 
     // --- Helper Methods (getMapName, logBox) ---
 
-    // Map ID to friendly name lookup
     private getMapName(mapId: string): string {
         const mapNames: Record<string, string> = {
             factory4_day: "Factory (Day)",
@@ -174,10 +157,9 @@ export class MapToy {
             tarkovstreets: "Streets of Tarkov",
             sandbox: "Ground Zero",
         };
-        return mapNames[mapId] || mapId; // Return friendly name or ID if not found
+        return mapNames[mapId] || mapId;
     }
 
-    // Draws the colorful log box in the console
     private logBox(title: string, content: string[], summary: string): void {
         const { green, cyan, yellow, reset } = this.colors;
         console.log(
@@ -203,6 +185,6 @@ export class MapToy {
         console.log(
             `${green}└───────────────────────────────────────────────────────────┘${reset}`
         );
-        console.log(""); // Trailing gap for readability
+        console.log("");
     }
 }
