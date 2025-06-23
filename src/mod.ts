@@ -13,7 +13,7 @@ class RaidTimeToy implements IPreSptLoadMod, IPostDBLoadMod {
     private container: DependencyContainer;
     private configController: ConfigController;
     private mapToy: MapToy;
-    private version: string; // <-- NEW PROPERTY
+    private version: string;
 
     /**
      * This method runs BEFORE the database is loaded.
@@ -41,7 +41,7 @@ class RaidTimeToy implements IPreSptLoadMod, IPostDBLoadMod {
 
         // Display validation warnings/fixes from initial load
         if (validationResult.warnings.length > 0) {
-            this.logger.warning(`[RaidTimeToy v${this.version}] Initial Configuration Issues detected:`); // <-- Use version here
+            this.logger.warning(`[RaidTimeToy v${this.version}] Initial Configuration Issues detected:`);
             validationResult.warnings.forEach((warning) => {
                 this.logger.warning(`   • ${warning}`);
             });
@@ -52,7 +52,7 @@ class RaidTimeToy implements IPreSptLoadMod, IPostDBLoadMod {
 
         // Exit early if mod is disabled in config - no static router registered.
         if (!safeConfig.enabled) {
-            this.logger.info(`[RaidTimeToy v${this.version}] Mod is disabled in the config. No changes or routes will be registered.`); // <-- Use version
+            this.logger.info(`[RaidTimeToy v${this.version}] Mod is disabled in the config. No changes or routes will be registered.`);
             return;
         }
 
@@ -64,7 +64,7 @@ class RaidTimeToy implements IPreSptLoadMod, IPostDBLoadMod {
                 {
                     url: "/client/match/local/end", // SPT-AKI's raid end endpoint
                     action: async (url, info, sessionId, output) => {
-                        this.logger.info(`[RaidTimeToy v${this.version}] Raid has ended. Re-adjusting raid times for the next match...`); // <-- Use version
+                        this.logger.info(`[RaidTimeToy v${this.version}] Raid has ended. Re-adjusting raid times for the next match...`);
                         this.runAdjustments();
                         return output;
                     },
@@ -83,7 +83,7 @@ class RaidTimeToy implements IPreSptLoadMod, IPostDBLoadMod {
             return;
         }
 
-        this.logger.info(`[RaidTimeToy v${this.version}] Server started. Applying initial raid time adjustments...`); // <-- Use version
+        this.logger.info(`[RaidTimeToy v${this.version}] Server started. Applying initial raid time adjustments...`);
         this.runAdjustments();
     }
 
@@ -95,7 +95,7 @@ class RaidTimeToy implements IPreSptLoadMod, IPostDBLoadMod {
         const safeConfig = this.configController.validateAndGetConfig().safeConfig;
 
         if (!safeConfig.enabled) {
-            this.logger.info(`[RaidTimeToy v${this.version}] Adjustments skipped as mod became disabled.`); // <-- Use version
+            this.logger.info(`[RaidTimeToy v${this.version}] Adjustments skipped as mod became disabled.`);
             return;
         }
 

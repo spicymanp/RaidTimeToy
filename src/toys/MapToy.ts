@@ -24,9 +24,9 @@ export class MapToy {
     /**
      * The main method to adjust all map locations based on the config.
      * @param safeConfig The validated configuration object.
-     * @param modVersion The current version of the mod. // <-- NEW PARAMETER
+     * @param modVersion The current version of the mod. 
      */
-    public adjustMaps(safeConfig: RaidTimeToyConfig, modVersion: string): void { // <-- ADD `modVersion` PARAMETER
+    public adjustMaps(safeConfig: RaidTimeToyConfig, modVersion: string): void {
         const locations = this.db.getTables().locations;
         let modifiedMapCount = 0;
         const modificationLogs: string[] = [];
@@ -117,7 +117,7 @@ export class MapToy {
                         trainExit.ExfiltrationTime = trainConfig.exfiltrationDurationSeconds;
 
                         modificationLogs.push(
-                            `   -> 🚆 Train: Active ${Math.round(newMinTime / 60)}m - ${Math.round(newMaxTime / 60)}m (Waits ${trainConfig.trainWaitTimeSeconds}s)`
+                            `   -> 🚆 Train: Active ${Math.round(newMinTime)}m - ${Math.round(newMaxTime)}m (Waits ${Math.round(trainConfig.trainWaitTimeSeconds / 60)}m)`
                         );
                     }
                 }
@@ -129,13 +129,13 @@ export class MapToy {
         let summaryText: string;
 
         if (safeConfig.randomMode?.enabled) {
-            titleText = `🎮 RaidTimeToy v${modVersion} - Random Mode 🎲`; // <-- USE modVersion HERE
+            titleText = `🎮 RaidTimeToy v${modVersion} - Random Mode 🎲`;
             summaryText = `✅ Randomized ${modifiedMapCount} maps successfully!`;
         } else if (safeConfig.globalMultiplier) {
-            titleText = `🎮 RaidTimeToy v${modVersion} - Global Mode (${safeConfig.raidTimeMultiplier}x)`; // <-- USE modVersion HERE
+            titleText = `🎮 RaidTimeToy v${modVersion} - Global Mode (${safeConfig.raidTimeMultiplier}x)`;
             summaryText = `✅ Applied ${safeConfig.raidTimeMultiplier}x to ${modifiedMapCount} maps!`;
         } else {
-            titleText = `🎮 RaidTimeToy v${modVersion} - Custom Mode`; // <-- USE modVersion HERE
+            titleText = `🎮 RaidTimeToy v${modVersion} - Custom Mode`;
             summaryText = `✅ Modified ${modifiedMapCount} maps (*=custom, 📂=category)`;
         }
         this.logBox(titleText, modificationLogs, summaryText);
