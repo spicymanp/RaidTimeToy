@@ -1,14 +1,14 @@
 import { DependencyContainer } from "tsyringe";
-import { IPostDBLoadMod } from "@spt/models/external/IPostDBLoadMod";
-import { IPreSptLoadMod } from "@spt/models/external/IPreSptLoadMod";
+import { IPostDBLoadMod } from "@spt/models/external/IPostDBLoadMod"; // Correct: imported individually
+import { IPreSptLoadMod } from "@spt/models/external/IPreSptLoadMod"; // Correct: imported individually
 import { ILogger } from "@spt/models/spt/utils/ILogger";
 import { StaticRouterModService } from "@spt/services/mod/staticRouter/StaticRouterModService";
-import { ConfigController } from "./controllers/ConfigController";
+import { ConfigController, RaidTimeToyConfig } from "./controllers/ConfigController"; // This import is correct
 import { MapToy } from "./toys/MapToy";
 import * as fs from "fs";
 import * as path from "path";
 
-class RaidTimeToy implements IPreSptLoadMod, IPostDBLoadMod {
+class RaidTimeToy implements IPostDBLoadMod {
     private logger: ILogger;
     private container: DependencyContainer;
     private configController: ConfigController;
@@ -16,15 +16,15 @@ class RaidTimeToy implements IPreSptLoadMod, IPostDBLoadMod {
     private version: string;
 
     /**
-     * This method runs BEFORE the database is loaded.
-     * We use it to set up our "run after every raid" hook and initial config validation.
+     * This method runs AFTER the database is loaded.
+     * It makes the initial raid time adjustments when the server first starts.
      */
-    public preSptLoad(container: DependencyContainer): void {
+    public postDBLoad(container: DependencyContainer): void {
         this.container = container;
         this.logger = container.resolve<ILogger>("WinstonLogger");
         this.configController = new ConfigController(this.logger);
 
-        // --- NEW: Get version from package.json ---
+        // --- Get version from package.json ---
         try {
             const packageJsonPath = path.resolve(__dirname, "../package.json");
             const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
@@ -41,7 +41,7 @@ class RaidTimeToy implements IPreSptLoadMod, IPostDBLoadMod {
 
         // Display validation warnings/fixes from initial load
         if (validationResult.warnings.length > 0) {
-            this.logger.warning(`[RaidTimeToy v${this.version}] Initial Configuration Issues detected:`);
+            this.logger.warning(`[RaidTimeToy v${this.version}] Configuration Issues detected:`);
             validationResult.warnings.forEach((warning) => {
                 this.logger.warning(`   • ${warning}`);
             });
@@ -50,57 +50,23 @@ class RaidTimeToy implements IPreSptLoadMod, IPostDBLoadMod {
             });
         }
 
-        // Exit early if mod is disabled in config - no static router registered.
+        // Exit if mod is disabled in config - only checked once on server start.
         if (!safeConfig.enabled) {
-            this.logger.info(`[RaidTimeToy v${this.version}] Mod is disabled in the config. No changes or routes will be registered.`);
+            this.logger.info(`[RaidTimeToy v${this.version}] Mod is disabled in the config. No changes will be applied.`);
             return;
         }
 
-        // Register a static route to re-adjust raid times after every local raid.
-        const staticRouter = container.resolve<StaticRouterModService>("StaticRouterModService");
-        staticRouter.registerStaticRouter(
-            "RaidTimeToy-MatchEnd", // Unique name for our router
-            [
-                {
-                    url: "/client/match/local/end", // SPT-AKI's raid end endpoint
-                    action: async (url, info, sessionId, output) => {
-                        this.logger.info(`[RaidTimeToy v${this.version}] Raid has ended. Re-adjusting raid times for the next match...`);
-                        this.runAdjustments();
-                        return output;
-                    },
-                },
-            ],
-            "spt" // The SPT-AKI session ID
-        );
+        this.logger.info(`[RaidTimeToy v${this.version}] Server started. Applying initial raid time and train adjustments...`);
+        this.runAdjustments(safeConfig); // Pass safeConfig directly
     }
 
     /**
-     * This method runs AFTER the database is loaded.
-     * It makes the initial raid time adjustments when the server first starts.
+     * This function now runs ONCE on server startup.
+     * It applies the raid time and train adjustments.
      */
-    public postDBLoad(container: DependencyContainer): void {
-        if (!this.configController?.getConfig().enabled) {
-            return;
-        }
-
-        this.logger.info(`[RaidTimeToy v${this.version}] Server started. Applying initial raid time adjustments...`);
-        this.runAdjustments();
-    }
-
-    /**
-     * This central function that gets a fresh validated config and tells the MapToy to adjust the maps.
-     * It's called on server start and after every raid to apply the latest settings.
-     */
-    private runAdjustments(): void {
-        const safeConfig = this.configController.validateAndGetConfig().safeConfig;
-
-        if (!safeConfig.enabled) {
-            this.logger.info(`[RaidTimeToy v${this.version}] Adjustments skipped as mod became disabled.`);
-            return;
-        }
-
-        this.mapToy = new MapToy(this.container);
-        this.mapToy.adjustMaps(safeConfig, this.version); // <-- PASS VERSION TO MAPTOY
+    private runAdjustments(safeConfig: RaidTimeToyConfig): void {
+        this.mapToy = new MapToy(this.container); // Initialize MapToy
+        this.mapToy.adjustMaps(safeConfig, this.version);
     }
 }
 

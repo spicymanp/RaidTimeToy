@@ -13,6 +13,7 @@ export class MapToy {
         cyan: "\x1b[36m",
         yellow: "\x1b[33m",
         reset: "\x1b[0m",
+        magenta: "\x1b[35m",
     };
 
     constructor(container: DependencyContainer) {
@@ -24,7 +25,7 @@ export class MapToy {
     /**
      * The main method to adjust all map locations based on the config.
      * @param safeConfig The validated configuration object.
-     * @param modVersion The current version of the mod. 
+     * @param modVersion The current version of the mod.
      */
     public adjustMaps(safeConfig: RaidTimeToyConfig, modVersion: string): void {
         const locations = this.db.getTables().locations;
@@ -42,7 +43,8 @@ export class MapToy {
                 locationData.base?.EscapeTimeLimit &&
                 locationData.base.EscapeTimeLimit < 99999
             ) {
-                const originalRaidTime = locationData.base.EscapeTimeLimit;
+                // --- Core Raid Time Logic
+                const originalRaidTimeMinutes = locationData.base.EscapeTimeLimit;
 
                 let multiplier: number = safeConfig.raidTimeMultiplier;
                 let isRandom = false;
@@ -50,6 +52,7 @@ export class MapToy {
                 let isCategory = false;
                 let categoryName = "";
 
+                // Determine multiplier based on configured mode
                 if (safeConfig.randomMode?.enabled) {
                     const min = safeConfig.randomMode.minMultiplier;
                     const max = safeConfig.randomMode.maxMultiplier;
@@ -82,25 +85,28 @@ export class MapToy {
                     }
                 }
 
-                const newCalculatedTime = Math.round(originalRaidTime * multiplier);
-                locationData.base.EscapeTimeLimit = newCalculatedTime;
+
+                const newCalculatedRaidTimeMinutes = Math.round(originalRaidTimeMinutes * multiplier);
+                locationData.base.EscapeTimeLimit = newCalculatedRaidTimeMinutes;
 
                 const friendlyMapName = this.getMapName(mapId);
 
+                // --- Build core log message for raid time adjustment
                 let raidTimeLogMessage = "";
                 if (isRandom) {
                     raidTimeLogMessage = `${friendlyMapName}: 🎲 randomized!`;
                 } else if (isGlobal) {
-                    raidTimeLogMessage = `${friendlyMapName}: ${originalRaidTime}m → ${newCalculatedTime}m (${multiplier}x)`;
+                    raidTimeLogMessage = `${friendlyMapName}: ${originalRaidTimeMinutes}m → ${newCalculatedRaidTimeMinutes}m (${multiplier}x)`;
                 } else if (isCategory) {
-                    raidTimeLogMessage = `${friendlyMapName}: ${originalRaidTime}m → ${newCalculatedTime}m (${multiplier}x 📂 ${categoryName})`;
+                    raidTimeLogMessage = `${friendlyMapName}: ${originalRaidTimeMinutes}m → ${newCalculatedRaidTimeMinutes}m (${multiplier}x 📂 ${categoryName})`;
                 } else {
                     const isCustom = safeConfig.perMapSettings?.[mapId] !== undefined;
                     const multiplierText = isCustom ? `${multiplier}x*` : `${multiplier}x`;
-                    raidTimeLogMessage = `${friendlyMapName}: ${originalRaidTime}m → ${newCalculatedTime}m (${multiplierText})`;
+                    raidTimeLogMessage = `${friendlyMapName}: ${originalRaidTimeMinutes}m → ${newCalculatedRaidTimeMinutes}m (${multiplierText})`;
                 }
                 modificationLogs.push(raidTimeLogMessage);
 
+                // --- TRAIN ADJUSTMENT LOGIC (Train properties are in SECONDS in DB) ---
                 if (safeConfig.adjustTrainTimes?.enabled && locationData.base?.exits) {
                     const trainExit = locationData.base.exits.find(
                         (exit: any) => exit.Name === "EXFIL_Train"
@@ -108,23 +114,60 @@ export class MapToy {
 
                     if (trainExit) {
                         const trainConfig = safeConfig.adjustTrainTimes;
-                        const newMinTime = Math.round(newCalculatedTime * trainConfig.arrivalStartPercent);
-                        const newMaxTime = Math.round(newCalculatedTime * trainConfig.departureEndPercent);
 
-                        trainExit.MinTime = newMinTime;
-                        trainExit.MaxTime = newMaxTime;
-                        trainExit.Count = trainConfig.trainWaitTimeSeconds;
-                        trainExit.ExfiltrationTime = trainConfig.exfiltrationDurationSeconds;
+                        // Convert new raid time from MINUTES to SECONDS for train calculations (which expect seconds).
+                        const newCalculatedRaidTimeSeconds = newCalculatedRaidTimeMinutes * 60;
 
-                        modificationLogs.push(
-                            `   -> 🚆 Train: Active ${Math.round(newMinTime)}m - ${Math.round(newMaxTime)}m (Waits ${Math.round(trainConfig.trainWaitTimeSeconds / 60)}m)`
-                        );
+                        const calculatedTrainMinTimeSeconds = Math.round(newCalculatedRaidTimeSeconds * trainConfig.arrivalStartPercent);
+                        const calculatedTrainMaxTimeSeconds = Math.round(newCalculatedRaidTimeSeconds * trainConfig.departureEndPercent);
+
+                        trainExit.MinTime = calculatedTrainMinTimeSeconds; // DB expects SECONDS
+                        trainExit.MaxTime = calculatedTrainMaxTimeSeconds; // DB expects SECONDS
+                        trainExit.Count = trainConfig.trainWaitTimeSeconds; // Config is in SECONDS for DB
+                        trainExit.ExfiltrationTime = trainConfig.exfiltrationDurationSeconds; // Config is in SECONDS for DB
+
+                        // Build train log messages (convert seconds to MINUTES for display)
+                        if (trainConfig.debugTrainTimes) {
+                            modificationLogs.push(
+                                `${this.colors.magenta}─────────────────────────────────────────────${this.colors.reset}`
+                            );
+                            modificationLogs.push(
+                                `${this.colors.magenta}   🚆 TRAIN DEBUG FOR ${friendlyMapName} 🚆${this.colors.reset}`
+                            );
+                            modificationLogs.push(
+                                `${this.colors.magenta}   -> Target Raid Length: ${newCalculatedRaidTimeMinutes}m (${newCalculatedRaidTimeSeconds}s)${this.colors.reset}`
+                            );
+                            modificationLogs.push(
+                                `${this.colors.magenta}   -> Arrival %: ${trainConfig.arrivalStartPercent}, Departure %: ${trainConfig.departureEndPercent}${this.colors.reset}`
+                            );
+                            modificationLogs.push(
+                                `${this.colors.magenta}   -> MinTime (DB): ${calculatedTrainMinTimeSeconds}s (~${Math.round(calculatedTrainMinTimeSeconds / 60)}m)${this.colors.reset}`
+                            );
+                            modificationLogs.push(
+                                `${this.colors.magenta}   -> MaxTime (DB): ${calculatedTrainMaxTimeSeconds}s (~${Math.round(calculatedTrainMaxTimeSeconds / 60)}m)${this.colors.reset}`
+                            );
+                            modificationLogs.push(
+                                `${this.colors.magenta}   -> Train Wait (DB): ${trainConfig.trainWaitTimeSeconds}s (~${trainConfig.trainWaitTimeSeconds}m)${this.colors.reset}`
+                            );
+                            modificationLogs.push(
+                                `${this.colors.magenta}   -> Player Exfil (DB): ${trainConfig.exfiltrationDurationSeconds}s${this.colors.reset}`
+                            );
+                            modificationLogs.push(
+                                `${this.colors.magenta}─────────────────────────────────────────────${this.colors.reset}`
+                            );
+                        } else {
+
+                            modificationLogs.push(
+                                `   -> 🚆 Train: Active ${Math.round(calculatedTrainMinTimeSeconds / 60)}m - ${Math.round(calculatedTrainMaxTimeSeconds / 60)}m (Waits ${Math.round(trainConfig.trainWaitTimeSeconds / 60)}m)`
+                            );
+                        }
                     }
                 }
                 modifiedMapCount++;
             }
         }
 
+        // --- Final Logging Box Output ---
         let titleText: string;
         let summaryText: string;
 

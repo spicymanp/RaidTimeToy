@@ -1,10 +1,6 @@
 import * as config from "../../config/config.json"; // Import your config.json
 import { ILogger } from "@spt/models/spt/utils/ILogger"; // Import ILogger
 
-/**
- * Defines the TypeScript type for your entire config.json.
- * This makes your code type-safe when accessing config properties.
- */
 export type RaidTimeToyConfig = typeof config;
 
 export class ConfigController {
@@ -13,7 +9,7 @@ export class ConfigController {
 
     constructor(logger: ILogger) {
         this.logger = logger;
-        // The initial validation and setup of safeConfig is now done when `validateAndGetConfig` is first called in mod.ts.
+        // The initial validation and setup of safeConfig is now done when `validateAndGetConfig` is first called in mod.ts's postDBLoad.
     }
 
     /**
@@ -113,6 +109,7 @@ export class ConfigController {
             const departure = trainConfig.departureEndPercent;
             const wait = trainConfig.trainWaitTimeSeconds;
             const exfil = trainConfig.exfiltrationDurationSeconds;
+            const debug = trainConfig.debugTrainTimes; // Debug flag itself
 
             if (arrival === undefined || typeof arrival !== 'number' || arrival < 0 || arrival >= 1 ||
                 departure === undefined || typeof departure !== 'number' || departure < 0 || departure > 1) {
@@ -137,6 +134,12 @@ export class ConfigController {
                 warnings.push(`Exfiltration duration (${exfil}) must be a positive number of seconds.`);
                 fixes.push(`Setting exfiltration duration to 5 seconds.`);
                 trainConfig.exfiltrationDurationSeconds = 5;
+            }
+
+            if (debug === undefined || typeof debug !== 'boolean') {
+                warnings.push(`'debugTrainTimes' in adjustTrainTimes is missing or not a boolean. Defaulting to false.`);
+                fixes.push(`Set 'debugTrainTimes' to true or false in config.json.`);
+                trainConfig.debugTrainTimes = false;
             }
         }
         // End Validation Logic

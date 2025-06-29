@@ -6,8 +6,9 @@
     "enabled": true,
     "arrivalStartPercent": 0.7,
     "departureEndPercent": 0.95,
-    "trainWaitTimeSeconds": 400,
-    "exfiltrationDurationSeconds": 5
+    "trainWaitTimeSeconds": 60,
+    "exfiltrationDurationSeconds": 5,
+    "debugTrainTimes": false
   },
   "randomMode": {
     "enabled": false,
